@@ -40,13 +40,13 @@ class Cell(FixedAgent):
         """
 
         # Get grid width and height
-        width = self.model.grid.dimensions[0]
-        height = self.model.grid.dimensions[1]
+        width = self.model.grid.width
+        height = self.model.grid.height
 
         # Get the grid positions for the top left, middle, and right neighbors
         # % width/height is used to get correct positions in a toroidal grid
         left_pos = (self.pos[0] - 1) % width, (self.pos[1] + 1) % height
-        top_pos = self.pos[0], (self.pos[1] + 1) % 50
+        top_pos = self.pos[0], (self.pos[1] + 1) % height
         right_pos = (self.pos[0] + 1) % width, (self.pos[1] + 1) % height
 
         # Initialize top neighbor states

@@ -29,7 +29,7 @@ class ConwaysGameOfLife(Model):
                 cell,
                 init_state=(
                     Cell.ALIVE
-                    if cell.coordinate[0] < self.grid.dimensions[0] and cell.coordinate[1] == self.grid.dimensions[1] - 1
+                    if cell.coordinate[0] < self.grid.width and cell.coordinate[1] == self.grid.height - 1
                         and self.random.random() < initial_fraction_alive
                     else Cell.DEAD
                 ),
