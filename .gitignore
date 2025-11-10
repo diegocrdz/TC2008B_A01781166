@@ -1,7 +1,10 @@
 __pycache__/
 *.vscode
 node_modules/
+node_modules
 *lock.yaml
 .env
 agents_requirements.txt
 .agents
+.DS_Store
+.vite
