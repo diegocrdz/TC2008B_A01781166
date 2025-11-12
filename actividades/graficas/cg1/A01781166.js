@@ -53,96 +53,185 @@ void main() {
 }
 `;
 
+// Class to create 2D objects and store their data
+class Object2D {
+    constructor(
+        id,
+        position=[0, 0],
+        rotation=[0, 0, 0],
+        scale=[1, 1],
+        color=[Math.random(), Math.random(), Math.random(), 1.0],
+        arrays = {
+            a_position: { numComponents: 2, data: [] },
+            a_color: { numComponents: 4, data: [] },
+            indices: { numComponents: 3, data: [] }
+        }) {
+
+        this.id = id;
+        
+        // Initial transformations
+        this.position = {
+            x: position[0],
+            y: position[1],
+        };
+        this.rotDeg = {
+            x: rotation[0],
+            y: rotation[1],
+            z: rotation[2],
+        };
+        this.rotRad = {
+            x: rotation[0] * Math.PI / 180,
+            y: rotation[1] * Math.PI / 180,
+            z: rotation[2] * Math.PI / 180,
+        };
+        this.scale = {
+            x: scale[0],
+            y: scale[1],
+        };
+
+        this.matrix = M3.identity();
+
+        // Materials and colors
+        this.color = color;
+
+        // Properties for rendering in WebGL
+        this.arrays = arrays;
+        this.bufferInfo = undefined;
+        this.vao = undefined;
+    }
+
+    setPosition(position) {
+        this.position = {
+            x: position[0],
+            y: position[1],
+        };
+    }
+
+    setRotation(rotation) {
+        this.rotDeg = rotation;
+        this.rotRad = rotation * Math.PI / 180;
+    }
+
+    setScale(scale) {
+        this.scale = {
+            x: scale[0],
+            y: scale[1],
+        };
+    }
+
+    // Return the position as an array
+    get posArray() {
+        return [this.position.x, this.position.y];
+    }
+
+    // Return the scale as an array
+    get scaArray() {
+        return [this.scale.x, this.scale.y];
+    }
+
+    // Set up the WebGL components for an object
+    prepareVAO(gl, programInfo, arrays) {
+        this.arrays = arrays;
+        this.bufferInfo = twgl.createBufferInfoFromArrays(gl, this.arrays);
+        this.vao = twgl.createVAOFromBufferInfo(gl, programInfo, this.bufferInfo);
+    }
+
+    // Copy an existing vao
+    // This should be used when multiple objects share the same model
+    setVAO(vao, bufferInfo) {
+        this.vao = vao;
+        this.bufferInfo = bufferInfo;
+    }
+};
+
 // Structure for the global data of all objects
 // This data will be modified by the UI and used by the renderer
 const objects = {
-    pivot: {
-        transforms: {
-            t: {
-                x: 0,
-                y: 0,
-                z: 0,
-            },
-            rr: {
-                x: 0,
-                y: 0,
-                z: 0,
-            },
-            s: {
-                x: 1,
-                y: 1,
-                z: 1,
-            }
-        },
-        color: [0.3, 0.3, 0.3, 1], // Dark Gray
-    },
-    face: {
-        transforms: {
-            t: {
-                x: 0,
-                y: 0,
-                z: 0,
-            },
-            rr: {
-                x: 0,
-                y: 0,
-                z: 0,
-            },
-            s: {
-                x: 1,
-                y: 1,
-                z: 1,
-            }
-        },
-        color: [1, 0.73, 0, 1], // Yellow
-    },
-    others: {
-        transforms: {
-            t: {
-                x: 0,
-                y: 0,
-                z: 0,
-            },
-            rr: {
-                x: 0,
-                y: 0,
-                z: 0,
-            },
-            s: {
-                x: 1,
-                y: 1,
-                z: 1,
-            }
-        },
-        color: [0.5, 0.2, 0.2, 1], // Dark Red
-    }
+    back: new Object2D(
+        'back',
+        [0, 0],
+        [0, 0, 0],
+        [1, 1],
+        [0.5, 0.2, 0.2, 1] // Dark Red
+    ),
+    face: new Object2D(
+        'face',
+        [0, 0],
+        [0, 0, 0],
+        [1, 1],
+        [1, 0.8, 0.3, 1], // Yellow
+    ),
+    leftEye: new Object2D(
+        'leftEye',
+        [0, 0],
+        [0, 0, 0],
+        [1, 1],
+        [0.5, 0.2, 0.2, 1] // Dark Red
+    ),
+    rightEye: new Object2D(
+        'rightEye',
+        [0, 0],
+        [0, 0, 0],
+        [1, 1],
+        [0.5, 0.2, 0.2, 1] // Dark Red
+    ),
+    blushLeft: new Object2D(
+        'blushLeft',
+        [0, 0],
+        [0, 0, 0],
+        [1, 1],
+        [1, 0.5, 0.5, 1] // Light Red
+    ),
+    blushRight: new Object2D(
+        'blushLeft',
+        [0, 0],
+        [0, 0, 0],
+        [1, 1],
+        [1, 0.5, 0.5, 1] // Light Red
+    ),
+    mouth: new Object2D(
+        'mouth',
+        [0, 0],
+        [0, 0, 0],
+        [1, 1],
+        [0.5, 0.2, 0.2, 1] // Dark Red
+    ),
+    pivot: new Object2D(
+        'pivot',
+        [0, 0],
+        [0, 0, 0],
+        [1, 1],
+        [0.3, 0.3, 0.3, 1], // Dark Gray
+    ),
 }
 
 // Function to generate the arrays used to draw a face
 // Includes the back, face, eyes and mouth
 // Returns an object with the arrays for each part of the face
-function generateFaceData() {
+function generateFaceData(faceSides, faceRadius, eyeSides, eyeRadius) {
 
     // Face
-    const faceSides = 30;
-    const backRadius = 110;
-    const faceRadius = 100;
-    let back = generateData(faceSides, backRadius, 0, 0);
-    let face = generateData(faceSides, faceRadius, 0, 0);
+    const innerRadius = faceRadius * 0.9; // Slightly smaller than the back
+    let back = generateData(faceSides, faceRadius, 0, 0);
+    let face = generateData(faceSides, innerRadius, 0, 0);
 
     // Eyes
-    const eyeSides = 10;
-    const eyeRadius = 10;
     let leftEye = generateData(eyeSides, eyeRadius, -35, -20);
     let rightEye = generateData(eyeSides, eyeRadius, 35, -20);
+
+    // Blushes
+    // (Using the same data as the eyes, just changing position)
+    let blushLeft = generateData(eyeSides, eyeRadius * 1.5, -60, 5);
+    let blushRight = generateData(eyeSides, eyeRadius * 1.5, 60, 5);
 
     // Mouth
     let mouth = generateMouthData();
 
-    return { back, face, leftEye, rightEye, mouth };
+    return { back, face, leftEye, rightEye, blushLeft, blushRight, mouth };
 }
 
 // Create the data for the vertices of the polyton, as an object with two arrays
+// Returns array with positions, colors and indexes
 function generateData(sides, radius, centerX, centerY) {
 
     // The arrays are initially empty
@@ -189,45 +278,6 @@ function generateData(sides, radius, centerX, centerY) {
         arrays.indices.data.push(s + 1);
         arrays.indices.data.push(((s + 2) <= sides) ? (s + 2) : 1);
     }
-
-    console.log(arrays);
-    return arrays;
-}
-
-// Function to generate the pivot data
-// Returns array with positions, colors and indexes
-function generatePivotData(size) {
-    let arrays = {
-        a_position: {
-            numComponents: 2,
-            data: [
-                // A diamond shape
-                size, 0,
-                0, size,
-                -size, 0,
-                0, -size,
-            ]
-        },
-        a_color: {
-            numComponents: 4,
-            data: [
-                // Gray color
-                0.3, 0.3, 0.3, 1,
-                0.3, 0.3, 0.3, 1,
-                0.3, 0.3, 0.3, 1,
-                0.3, 0.3, 0.3, 1,
-            ]
-        },
-        indices: {
-            numComponents: 3,
-            data: [
-                // Front face
-                0, 1, 2,
-                2, 3, 0,
-            ]
-        }
-    };
-
     return arrays;
 }
 
@@ -283,117 +333,64 @@ function main() {
     twgl.resizeCanvasToDisplaySize(gl.canvas);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
-    // Set initial positions
+    // Generate arrays for the objects
+    const faceData = generateFaceData(30, 110, 10, 10);
+    const pivotArrays = generateData(4, 30, 0, 0);
 
-    // Pivot
-    objects.pivot.transforms.t.x = (gl.canvas.width / 10) * 4; // 4/10 of width
-    objects.pivot.transforms.t.y = gl.canvas.height / 2;
+    // Assign arrays to each object
+    objects.pivot.arrays = pivotArrays;
+    objects.back.arrays = faceData.back;
+    objects.face.arrays = faceData.face;
+    objects.leftEye.arrays = faceData.leftEye;
+    objects.rightEye.arrays = faceData.rightEye;
+    objects.blushLeft.arrays = faceData.blushLeft;
+    objects.blushRight.arrays = faceData.blushRight;
+    objects.mouth.arrays = faceData.mouth;
+
+    // Set initial positions
+    objects.pivot.setPosition([(gl.canvas.width / 10) * 4, gl.canvas.height / 2]);
+    objects.face.setPosition([(gl.canvas.width / 10) * 6, gl.canvas.height / 2]);
     
-    // Face
-    objects.face.transforms.t.x = (gl.canvas.width / 10) * 6; // 6/10 of width
-    objects.face.transforms.t.y = gl.canvas.height / 2;
+    // Other objects have position relative to the face
+    objects.back.setPosition(objects.face.posArray);
+    objects.leftEye.setPosition(objects.face.posArray);
+    objects.rightEye.setPosition(objects.face.posArray);
+    objects.mouth.setPosition(objects.face.posArray);
 
     setupUI(gl);
 
     const programInfo = twgl.createProgramInfo(gl, [vsGLSL, fsGLSL]);
+    
+    // Generate buffer and vao for each object
+    for (const object of Object.values(objects)) {
+        object.prepareVAO(gl, programInfo, object.arrays);
+    }
 
-    // Face arrays
-    const arrays = generateFaceData();
-    const backArrays = arrays.back;
-    const faceArrays = arrays.face;
-    const leftEyeArrays = arrays.leftEye;
-    const rightEyeArrays = arrays.rightEye;
-    const mouthArrays = arrays.mouth;
-
-    // Pivot arrays
-    const pivotArrays = generatePivotData(30);
-
-    // List of all renderable objects
-    // Used to generate buffers and vaos, and to draw the scene in loop
-    const renderables = [
-        {
-            name: 'back',
-            arrays: backArrays,
-            color: objects.others.color,
-        },
-        {
-            name: 'face',
-            arrays: faceArrays,
-            color: objects.face.color,
-        },
-        {
-            name: 'leftEye',
-            arrays: leftEyeArrays,
-            color: objects.others.color,
-        },
-        {
-            name: 'rightEye',
-            arrays: rightEyeArrays,
-            color: objects.others.color,
-        },
-        {
-            name: 'mouth',
-            arrays: mouthArrays,
-            color: objects.others.color,
-        },
-        {
-            name: 'pivot',
-            arrays: pivotArrays,
-            color: objects.pivot.color,
-        },
-    ];
-
-    // Generate buffer and vao for each renderable
-    renderables.forEach(object => {
-        object.bufferInfo = twgl.createBufferInfoFromArrays(gl, object.arrays);
-        object.vao = twgl.createVAOFromBufferInfo(gl, programInfo, object.bufferInfo);
-    });
-
-    drawScene(gl, programInfo, renderables);
+    drawScene(gl, programInfo);
 }
 
 // Function to do the actual display of the objects
-function drawScene(gl, programInfo, renderables) {
-
-    let translate = [objects.face.transforms.t.x, objects.face.transforms.t.y];
-    let angle_radians = objects.face.transforms.rr.z;
-    let scale = [objects.face.transforms.s.x, objects.face.transforms.s.y];
-    let pivot = [objects.pivot.transforms.t.x, objects.pivot.transforms.t.y];
-
-    // Create transform matrices
-    const scaMat = M3.scale(scale);
-    const rotMat = M3.rotation(angle_radians);
-    const traMat = M3.translation(translate);
-
-    /*
-    // Create a composite matrix
-    let transforms = M3.identity();
-    transforms = M3.multiply(scaMat, transforms);
-    transforms = M3.multiply(rotMat, transforms);
-    transforms = M3.multiply(traMat, transforms);
-    */
-
+function drawScene(gl, programInfo) {
     gl.useProgram(programInfo.program);
 
     // Draw each object
-    renderables.forEach(object => {
-        // Create a composite matrix
+    for (const object of Object.values(objects)) {
         let transforms = M3.identity();
 
-        if (object.name === 'pivot') {
+        if (object.id === 'pivot') {
             // Only translation for the pivot
-            transforms = M3.multiply(M3.translation(pivot), transforms);
+            transforms = M3.multiply(M3.translation(object.posArray), transforms);
         } else {
             // Apply scale and translation
-            transforms = M3.multiply(scaMat, transforms);
-            transforms = M3.multiply(traMat, transforms);
+            transforms = M3.multiply(M3.scale(objects.face.scaArray), transforms);
+            transforms = M3.multiply(M3.translation(objects.face.posArray), transforms);
 
             // Move pivot to the origin
-            transforms = M3.multiply(M3.translation([-pivot[0], -pivot[1]]), transforms);
+            transforms = M3.multiply(M3.translation([-objects.pivot.position.x, -objects.pivot.position.y]), transforms);
             // Apply rotation
-            transforms = M3.multiply(rotMat, transforms);
+            transforms = M3.multiply(M3.rotation(objects.face.rotRad.z), transforms);
             // Move pivot back to its position
-            transforms = M3.multiply(M3.translation(pivot), transforms);
+            transforms = M3.multiply(M3.translation(objects.pivot.posArray), transforms);
         }
 
         let uniforms = {
@@ -405,9 +402,9 @@ function drawScene(gl, programInfo, renderables) {
         twgl.setUniforms(programInfo, uniforms);
         gl.bindVertexArray(object.vao);
         twgl.drawBufferInfo(gl, object.bufferInfo);
-    });
+    }
 
-    requestAnimationFrame(() => drawScene(gl, programInfo, renderables));
+    requestAnimationFrame(() => drawScene(gl, programInfo));
 }
 
 // Setup the UI using lil-gui
@@ -420,28 +417,35 @@ function setupUI(gl) {
     
     // Face Translation
     const traFolder = faceFolder.addFolder('Translation');
-    traFolder.add(objects.face.transforms.t, 'x', 0, gl.canvas.width);
-    traFolder.add(objects.face.transforms.t, 'y', 0, gl.canvas.height);
+    traFolder.add(objects.face.position, 'x', 0, gl.canvas.width);
+    traFolder.add(objects.face.position, 'y', 0, gl.canvas.height);
 
     // Face Rotation
     const rotFolder = faceFolder.addFolder('Rotation');
-    rotFolder.add(objects.face.transforms.rr, 'z', -Math.PI * 2, Math.PI * 2);
+    rotFolder.add(objects.face.rotRad, 'z', -Math.PI * 2, Math.PI * 2).name('z');
 
     // Face Scale
     const scaFolder = faceFolder.addFolder('Scale');
-    scaFolder.add(objects.face.transforms.s, 'x', -5, 5);
-    scaFolder.add(objects.face.transforms.s, 'y', -5, 5);
+    scaFolder.add(objects.face.scale, 'x', -5, 5);
+    scaFolder.add(objects.face.scale, 'y', -5, 5);
 
     // Face Colors
     const faceColorFolder = faceFolder.addFolder('Colors');
     faceColorFolder.addColor(objects.face, 'color').name('Face');
-    faceColorFolder.addColor(objects.others, 'color').name('Eyes/Mouth');
+    faceColorFolder.addColor(objects.leftEye, 'color').name('Others').onChange((value) => {
+        objects.rightEye.color = value;
+        objects.mouth.color = value;
+        objects.back.color = value;
+    });
+    faceColorFolder.addColor(objects.blushLeft, 'color').name('Blush').onChange((value) => {
+        objects.blushRight.color = value;
+    });
 
     // Pivot controls
     const pivotFolder = gui.addFolder('Pivot');
     const pivotTraFolder = pivotFolder.addFolder('Translation');
-    pivotTraFolder.add(objects.pivot.transforms.t, 'x', 0, gl.canvas.width);
-    pivotTraFolder.add(objects.pivot.transforms.t, 'y', 0, gl.canvas.height);
+    pivotTraFolder.add(objects.pivot.position, 'x', 0, gl.canvas.width);
+    pivotTraFolder.add(objects.pivot.position, 'y', 0, gl.canvas.height);
 
     // Color controls
     const colorFolder = gui.addFolder('Colors');
