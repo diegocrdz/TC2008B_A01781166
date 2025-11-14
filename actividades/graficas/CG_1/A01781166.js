@@ -1,15 +1,18 @@
 /*
  * Script to draw a face that can be translated, scaled
  * and rotated around a pivot
- *
+ * 
+ * Each object is independently defined and drawn.
+ * Face transformations are applied to all face objects
+ * except the pivot.
+ * 
  * Diego Córdova Rodríguez, A01781166
  * 2025-11-14
  */
 
-
 'use strict';
 
-import * as twgl from 'twgl-base.js';
+import * as twgl from 'twgl-base.js/dist/5.x/twgl.js';
 import { M3 } from './A01781166-2d-libs.js';
 import GUI from 'lil-gui';
 
@@ -382,6 +385,7 @@ function drawScene(gl, programInfo) {
             transforms = M3.multiply(M3.translation(object.posArray), transforms);
         } else {
             // Apply scale and translation
+            // Based on the face object, since its the "parent" of the others
             transforms = M3.multiply(M3.scale(objects.face.scaArray), transforms);
             transforms = M3.multiply(M3.translation(objects.face.posArray), transforms);
 
@@ -448,7 +452,7 @@ function setupUI(gl) {
     pivotTraFolder.add(objects.pivot.position, 'y', 0, gl.canvas.height);
 
     // Color controls
-    const colorFolder = gui.addFolder('Colors');
+    const colorFolder = pivotFolder.addFolder('Colors');
     colorFolder.addColor(objects.pivot, 'color').name('Pivot Color');
 }
 
