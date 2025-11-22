@@ -2,7 +2,7 @@
  * Library file with objects and funcitions used for 3D vectors, matrices and transformations
  *
  * Diego Córdova Rodríguez, A01781166
- * 2025-11-15
+ * 2025-11-24
  */
 
 // Vector 3

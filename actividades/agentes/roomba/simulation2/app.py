@@ -2,7 +2,7 @@
 Simulation 2
 Mesa Solara visualization for the multiple roombas simulation model.
 Diego Córdova Rodríguez, A01781166
-2025-11-19
+2025-11-24
 """
 
 from random_agents.agent import Roomba, ObstacleAgent, TrashAgent, Station, Ground

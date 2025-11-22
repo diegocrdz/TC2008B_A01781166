@@ -2,7 +2,7 @@
 Simulation 1
 Agents for the single roomba simulation.
 Diego Córdova Rodríguez, A01781166
-2025-11-19
+2025-11-24
 """
 
 from mesa.discrete_space import CellAgent, FixedAgent
