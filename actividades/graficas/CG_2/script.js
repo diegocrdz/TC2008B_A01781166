@@ -197,20 +197,14 @@ function faces(numSides, rings) {
         const baseNext = baseStart + bottomRing * numSides + ((i + 1) % numSides);
 
         // Create triangles for the base
-        // The indexes were created clockwise
-        // So we have to reverse the order to make the normal point downwards
-        // Face: center, next, current
-        facesBase.push([centerBaseIdx, baseNext, baseCurrent]);
+        facesBase.push([centerBaseIdx, baseCurrent, baseNext]);
 
         // Get current and next vertex indexes for top
         const topCurrent = baseStart + topRing * numSides + i;
         const topNext = baseStart + topRing * numSides + ((i + 1) % numSides);
 
         // Create triangles for the top
-        // The indexes were created clockwise
-        // So we can use the order as is to make the normal point upwards
-        // Face: center, current, next
-        facesTop.push([centerTopIdx, topCurrent, topNext]);
+        facesTop.push([centerTopIdx, topNext, topCurrent]);
     }
 
     // Generate side faces between each pair of rings
@@ -226,10 +220,8 @@ function faces(numSides, rings) {
             const topNext = baseStart + upper * numSides + ((i + 1) % numSides);
 
             // Create two triangles for each side face
-            // First triangle: baseCurrent, baseNext, topNext
-            facesSides.push([baseCurrent, baseNext, topNext]);
-            // Second triangle: baseCurrent, topNext, topCurrent
-            facesSides.push([baseCurrent, topNext, topCurrent]);
+            facesSides.push([baseCurrent, topCurrent, baseNext]);
+            facesSides.push([baseNext, topCurrent, topNext]);
         }
     }
 
@@ -278,7 +270,7 @@ function normals(numSides, vertices, rings) {
             const v13 = V3.subtract(v3, v1); // From v1 to v3
 
             // Calculate the normal using cross product
-            let normal = V3.cross(v12, v13);
+            let normal = V3.cross(v13, v12);
 
             // Normalize
             normal = V3.normalize(normal);
